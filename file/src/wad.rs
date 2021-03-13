@@ -6,7 +6,7 @@ use nom::{
     number::complete::le_i32,
     sequence::tuple,
 };
-use std::{iter::Iterator, str::FromStr};
+use std::iter::Iterator;
 
 const NAME_LEN: usize = 8;
 
@@ -21,19 +21,19 @@ fn take_cstr(i: &[u8], size: usize) -> ParseResult<&str> {
     Ok((i, cstr))
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Type {
     IWAD,
     PWAD,
 }
 
-impl FromStr for Type {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "PWAD" => Ok(Self::PWAD),
-            "IWAD" => Ok(Self::IWAD),
-            _ => Err(()),
+impl From<&[u8]> for Type {
+    /// It's assumed that `i` is always correct due it's called from parser with pre-check of value
+    fn from(i: &[u8]) -> Self {
+        match i {
+            b"PWAD" => Self::PWAD,
+            b"IWAD" => Self::IWAD,
+            _ => unreachable!(),
         }
     }
 }
@@ -74,10 +74,7 @@ pub struct Archive<'a> {
 impl<'a> Archive<'a> {
     pub fn parse(file: &'a [u8]) -> OnlyResult<Self> {
         let (_, (wtype, dir_num, dir_offset)) = tuple((
-            map_res(
-                map_res(alt((tag(b"PWAD"), tag(b"IWAD"))), std::str::from_utf8),
-                Type::from_str,
-            ),
+            map(alt((tag(b"PWAD"), tag(b"IWAD"))), Type::from),
             map(le_i32, |x| x as usize),
             map(le_i32, |x| x as usize),
         ))(file)?;

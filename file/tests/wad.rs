@@ -1,6 +1,8 @@
+const TEST_WAD_PATH: &str = "/usr/share/doom/doom1.wad";
+
 #[test]
-fn abc() {
-    let file = std::fs::read("/usr/share/doom/doom1.wad").unwrap();
+fn print_lump_names() {
+    let file = std::fs::read(TEST_WAD_PATH).unwrap();
     let archive = file::wad::Archive::parse(&file).unwrap();
 
     println!("Wad type: {:?}", archive.wtype());

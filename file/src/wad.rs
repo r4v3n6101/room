@@ -97,6 +97,8 @@ impl<'a> Archive<'a> {
     }
 
     pub fn get_by_name<S: AsRef<str>>(&self, name: S) -> Option<&Entry> {
-        self.entries.iter().find(|e| e.name() == name.as_ref())
+        self.entries
+            .iter()
+            .find(|e| e.name().eq_ignore_ascii_case(name.as_ref()))
     }
 }

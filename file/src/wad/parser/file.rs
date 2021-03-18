@@ -6,7 +6,6 @@ use nom::{
     number::complete::le_i32,
     sequence::tuple,
 };
-use std::iter::Iterator;
 
 const NAME_LEN: usize = 8;
 
@@ -21,7 +20,7 @@ fn take_cstr(i: &[u8], size: usize) -> ParseResult<&str> {
     Ok((i, cstr))
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Type {
     IWAD,
     PWAD,
@@ -88,17 +87,7 @@ impl<'a> Archive<'a> {
         self.wtype
     }
 
-    pub fn iter_with_indices(&self) -> impl Iterator<Item = (usize, &Entry)> {
-        self.entries.iter().enumerate()
-    }
-
-    pub fn get_by_index(&self, index: usize) -> Option<&Entry> {
-        self.entries.get(index)
-    }
-
-    pub fn get_by_name<S: AsRef<str>>(&self, name: S) -> Option<&Entry> {
-        self.entries
-            .iter()
-            .find(|e| e.name().eq_ignore_ascii_case(name.as_ref()))
+    pub fn entries(&self) -> &[Entry] {
+        &self.entries
     }
 }

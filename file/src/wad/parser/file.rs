@@ -87,4 +87,24 @@ impl<'a> Archive<'a> {
     pub fn lumps(&self) -> &[Lump] {
         &self.lumps
     }
+
+    pub fn get_by_name<S: AsRef<str>>(&self, s: S) -> Option<&Lump> {
+        self.lumps.iter().find(|lump| lump.name() == s.as_ref())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn print_lump_names() {
+        let file = std::fs::read(env!("TEST_WAD")).unwrap();
+        let archive = super::Archive::parse(&file).unwrap();
+
+        println!("Wad type: {:?}", archive.wtype());
+        archive
+            .lumps()
+            .iter()
+            .enumerate()
+            .for_each(|(i, e)| println!("Lump {} named {}", i, e.name()));
+    }
 }

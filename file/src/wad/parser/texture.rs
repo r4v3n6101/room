@@ -115,3 +115,21 @@ impl Textures {
         Ok(textures)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn print_textures() {
+        let file = std::fs::read(env!("TEST_WAD")).unwrap();
+        let archive = crate::wad::parser::file::Archive::parse(&file).unwrap();
+        let texture1_lump = archive
+            .lumps()
+            .iter()
+            .find(|lump| lump.name() == "TEXTURE1")
+            .expect("TEXTURE1 not found");
+        let textures = super::Textures::parse(texture1_lump.data()).unwrap();
+        textures
+            .iter()
+            .for_each(|tex| println!("TEXTURE1 name: {}", tex.name()));
+    }
+}

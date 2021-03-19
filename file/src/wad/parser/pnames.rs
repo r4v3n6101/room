@@ -17,7 +17,7 @@ mod tests {
     fn print_indexed_pnames() {
         let file = std::fs::read(env!("TEST_WAD")).expect("Error reading wad file");
         let archive =
-            crate::wad::parser::file::Archive::parse(&file).expect("Wad File parser error");
+            crate::wad::parser::file::Archive::parse(&file).expect("Wad file parser error");
         let pnames_lump = archive.get_by_name("PNAMES").expect("PNAMES not found");
         let pnames = super::parse_pnames(pnames_lump.data()).expect("Error parsing PNAMES");
 

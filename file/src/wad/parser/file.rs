@@ -97,8 +97,8 @@ impl<'a> Archive<'a> {
 mod tests {
     #[test]
     fn print_lump_names() {
-        let file = std::fs::read(env!("TEST_WAD")).unwrap();
-        let archive = super::Archive::parse(&file).unwrap();
+        let file = std::fs::read(env!("TEST_WAD")).expect("Error reading wad file");
+        let archive = super::Archive::parse(&file).expect("Wad file parser error");
 
         println!("Wad type: {:?}", archive.wtype());
         archive

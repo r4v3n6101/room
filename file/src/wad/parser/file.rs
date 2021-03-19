@@ -1,24 +1,17 @@
+use super::name::parse_name;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take, take_till},
-    combinator::{map, map_res},
+    bytes::complete::{tag, take},
+    combinator::map,
     multi::count,
     number::complete::le_i32,
     sequence::tuple,
 };
 
-const NAME_LEN: usize = 8;
-
 type Input<'a> = &'a [u8];
 type ParseError<'a> = nom::error::VerboseError<Input<'a>>;
 type ParseResult<'a, O> = nom::IResult<Input<'a>, O, ParseError<'a>>;
 type OnlyResult<'a, O> = Result<O, nom::Err<ParseError<'a>>>;
-
-fn take_cstr(i: &[u8], size: usize) -> ParseResult<&str> {
-    let (i, cstr) = take(size)(i)?;
-    let (_, cstr) = map_res(take_till(|x| x == 0), std::str::from_utf8)(cstr)?;
-    Ok((i, cstr))
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Type {
@@ -47,7 +40,7 @@ impl<'a> Entry<'a> {
         let (i, (offset, disk_size, name)) = tuple((
             map(le_i32, |x| x as usize),
             map(le_i32, |x| x as usize),
-            |i| take_cstr(i, NAME_LEN),
+            parse_name,
         ))(i)?;
 
         let (data_i, _) = take(offset)(file)?;
@@ -62,6 +55,10 @@ impl<'a> Entry<'a> {
 
     pub const fn data(&self) -> &[u8] {
         self.data
+    }
+
+    pub const fn is_virtual(&self) -> bool {
+        self.data.is_empty()
     }
 }
 

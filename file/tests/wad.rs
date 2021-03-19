@@ -7,7 +7,7 @@ fn print_lump_names() {
 
     println!("Wad type: {:?}", archive.wtype());
     archive
-        .entries()
+        .lumps()
         .iter()
         .enumerate()
         .for_each(|(i, e)| println!("{}: {}", i, e.name()));

@@ -30,12 +30,12 @@ impl From<&[u8]> for Type {
     }
 }
 
-pub struct Entry<'a> {
+pub struct Lump<'a> {
     name: &'a str,
     data: &'a [u8],
 }
 
-impl<'a> Entry<'a> {
+impl<'a> Lump<'a> {
     fn parse(i: &'a [u8], file: &'a [u8]) -> ParseResult<'a, Self> {
         let (i, (offset, disk_size, name)) = tuple((
             map(le_i32, |x| x as usize),
@@ -64,7 +64,7 @@ impl<'a> Entry<'a> {
 
 pub struct Archive<'a> {
     wtype: Type,
-    entries: Vec<Entry<'a>>,
+    lumps: Vec<Lump<'a>>,
 }
 
 impl<'a> Archive<'a> {
@@ -76,15 +76,15 @@ impl<'a> Archive<'a> {
         ))(file)?;
 
         let (dir_i, _) = take(dir_offset)(file)?;
-        let (_, entries) = count(|i| Entry::parse(i, file), dir_num)(dir_i)?;
-        Ok(Self { wtype, entries })
+        let (_, lumps) = count(|i| Lump::parse(i, file), dir_num)(dir_i)?;
+        Ok(Self { wtype, lumps })
     }
 
     pub const fn wtype(&self) -> Type {
         self.wtype
     }
 
-    pub fn entries(&self) -> &[Entry] {
-        &self.entries
+    pub fn lumps(&self) -> &[Lump] {
+        &self.lumps
     }
 }

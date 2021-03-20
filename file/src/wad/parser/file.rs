@@ -1,4 +1,5 @@
 use super::name::parse_name;
+use indexmap::IndexMap;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take},
@@ -31,12 +32,11 @@ impl From<&[u8]> for Type {
 }
 
 pub struct Lump<'a> {
-    name: &'a str,
     data: &'a [u8],
 }
 
 impl<'a> Lump<'a> {
-    fn parse(i: &'a [u8], file: &'a [u8]) -> ParseResult<'a, Self> {
+    fn parse(i: &'a [u8], file: &'a [u8]) -> ParseResult<'a, (&'a str, Self)> {
         let (i, (offset, disk_size, name)) = tuple((
             map(le_i32, |x| x as usize),
             map(le_i32, |x| x as usize),
@@ -46,11 +46,7 @@ impl<'a> Lump<'a> {
         let (data_i, _) = take(offset)(file)?;
         let (_, data) = take(disk_size)(data_i)?;
 
-        Ok((i, Self { name, data }))
-    }
-
-    pub const fn name(&self) -> &str {
-        self.name
+        Ok((i, (name, Self { data })))
     }
 
     pub const fn data(&self) -> &[u8] {
@@ -64,7 +60,7 @@ impl<'a> Lump<'a> {
 
 pub struct Archive<'a> {
     wtype: Type,
-    lumps: Vec<Lump<'a>>,
+    lumps: IndexMap<&'a str, Lump<'a>>,
 }
 
 impl<'a> Archive<'a> {
@@ -76,7 +72,9 @@ impl<'a> Archive<'a> {
         ))(file)?;
 
         let (dir_i, _) = take(dir_offset)(file)?;
-        let (_, lumps) = count(|i| Lump::parse(i, file), dir_num)(dir_i)?;
+        let (_, lumps) = map(count(|i| Lump::parse(i, file), dir_num), |vec| {
+            vec.into_iter().collect()
+        })(dir_i)?;
         Ok(Self { wtype, lumps })
     }
 
@@ -84,12 +82,16 @@ impl<'a> Archive<'a> {
         self.wtype
     }
 
-    pub fn lumps(&self) -> &[Lump] {
-        &self.lumps
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &Lump)> {
+        self.lumps.iter().map(|(&s, l)| (s, l))
+    }
+
+    pub fn get_by_index(&self, i: usize) -> Option<(&str, &Lump)> {
+        self.lumps.get_index(i).map(|(&s, l)| (s, l))
     }
 
     pub fn get_by_name<S: AsRef<str>>(&self, s: S) -> Option<&Lump> {
-        self.lumps.iter().find(|lump| lump.name() == s.as_ref())
+        self.lumps.get(s.as_ref())
     }
 }
 
@@ -102,9 +104,8 @@ mod tests {
 
         println!("Wad type: {:?}", archive.wtype());
         archive
-            .lumps()
             .iter()
             .enumerate()
-            .for_each(|(i, e)| println!("Lump {} named {}", i, e.name()));
+            .for_each(|(i, (name, _))| println!("Lump {} named {}", i, name));
     }
 }

@@ -1,8 +1,9 @@
 [package]
 name = "file"
-version = "0.1.5"
+version = "0.2.0"
 authors = ["r4v3n6101 <raven6107@gmail.com>"]
 edition = "2018"
 
 [dependencies]
 nom = "6.1.2"
+indexmap = { version = "1.6.2", default-features = false }

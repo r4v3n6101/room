@@ -79,7 +79,7 @@ impl Picture {
 
     pub fn into_matrix(self) -> Vec<Vec<u8>> {
         let (width, height) = (self.width as usize, self.height as usize);
-        let mut output = vec![vec![0; height]; width];
+        let mut output = vec![vec![!0; height]; width];
         for x in 0..width {
             let out_column = &mut output[x];
             let column = &self.columns[x];
@@ -124,8 +124,14 @@ mod tests {
             for x in 0..matrix.len() {
                 for y in 0..matrix[0].len() {
                     let pixel = img_buf.get_pixel_mut(x as u32, y as u32);
-                    let color = playpal[matrix[x][y] as usize];
-                    *pixel = image::Rgb([color.0, color.1, color.2]);
+                    let index = matrix[x][y];
+                    let color = if index == !0 {
+                        (0, 0, 0, 0)
+                    } else {
+                        let color = playpal[index as usize];
+                        (color.0, color.1, color.2, 0xFF)
+                    };
+                    *pixel = image::Rgba([color.0, color.1, color.2, color.3]);
                 }
             }
 

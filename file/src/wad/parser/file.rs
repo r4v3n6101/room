@@ -37,14 +37,10 @@ pub struct Lump<'a> {
 
 impl<'a> Lump<'a> {
     fn parse(i: &'a [u8], file: &'a [u8]) -> ParseResult<'a, (&'a str, Self)> {
-        let (i, (offset, disk_size, name)) = tuple((
-            map(le_i32, |x| x as usize),
-            map(le_i32, |x| x as usize),
-            parse_name,
-        ))(i)?;
+        let (i, (offset, disk_size, name)) = tuple((le_i32, le_i32, parse_name))(i)?;
 
-        let (data_i, _) = take(offset)(file)?;
-        let (_, data) = take(disk_size)(data_i)?;
+        let (data_i, _) = take(offset as usize)(file)?;
+        let (_, data) = take(disk_size as usize)(data_i)?;
 
         Ok((i, (name, Self { data })))
     }
@@ -67,12 +63,12 @@ impl<'a> Archive<'a> {
     pub fn parse(file: &'a [u8]) -> OnlyResult<Self> {
         let (_, (wtype, dir_num, dir_offset)) = tuple((
             map(alt((tag(b"PWAD"), tag(b"IWAD"))), Type::from),
-            map(le_i32, |x| x as usize),
-            map(le_i32, |x| x as usize),
+            le_i32,
+            le_i32,
         ))(file)?;
 
-        let (dir_i, _) = take(dir_offset)(file)?;
-        let (_, lumps) = map(count(|i| Lump::parse(i, file), dir_num), |vec| {
+        let (dir_i, _) = take(dir_offset as usize)(file)?;
+        let (_, lumps) = map(count(|i| Lump::parse(i, file), dir_num as usize), |vec| {
             vec.into_iter().collect()
         })(dir_i)?;
         Ok(Self { wtype, lumps })

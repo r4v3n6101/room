@@ -1,6 +1,6 @@
 use nom::{
     bytes::complete::take,
-    combinator::{map, map_res, verify},
+    combinator::{map_res, verify},
     multi::{count, many0},
     number::complete::{le_i16, le_i32, le_u8},
     sequence::tuple,
@@ -45,8 +45,8 @@ impl Picture {
         let (i, (width, height, left_offset, top_offset)) =
             tuple((le_i16, le_i16, le_i16, le_i16))(lump_i)?;
         let (_, columns) = count(
-            map_res(map(le_i32, |x| x as usize), |offset| {
-                let (data_i, _) = take(offset)(lump_i)?;
+            map_res(le_i32, |offset| {
+                let (data_i, _) = take(offset as usize)(lump_i)?;
                 many0(verify(Post::parse, |post| post.rowstart() != 255))(data_i)
                     .map(|(_, post)| post)
             }),

@@ -107,8 +107,8 @@ impl Textures {
     pub fn parse<'a>(i: &'a [u8]) -> OnlyResult<Vec<Texture<'a>>> {
         let (_, textures) = length_count(
             map(le_i32, |x| x as usize),
-            map_res(map(le_i32, |x| x as usize), |offset| {
-                let (tex_i, _) = take(offset)(i)?;
+            map_res(le_i32, |offset| {
+                let (tex_i, _) = take(offset as usize)(i)?;
                 Texture::parse(tex_i)
             }),
         )(i)?;

@@ -1,3 +1,4 @@
+pub mod colormap;
 pub mod file;
 pub mod flat;
 pub mod name;

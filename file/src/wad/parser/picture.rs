@@ -98,7 +98,7 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
-    fn save_textures_to_disk() {
+    fn save_pictures_to_disk() {
         let file = std::fs::read(env!("TEST_WAD")).expect("Error reading wad file");
         let output_dir = std::path::PathBuf::from_str(env!("IMG_OUTPUT_DIR"))
             .expect("Error getting output dir's path");

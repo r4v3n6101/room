@@ -21,6 +21,6 @@ mod tests {
             .map(|(_, l)| l)
             .expect("Next flat to F_START not found");
 
-        assert!(super::parse_flat(flat.data()).is_ok());
+        assert!(super::parse_flat(flat.data).is_ok());
     }
 }

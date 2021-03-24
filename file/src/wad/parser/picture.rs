@@ -22,21 +22,13 @@ impl Post {
         let (i, (pixels, _)) = tuple((count(le_u8, num_pixels as usize), le_u8))(i)?;
         Ok((i, Self { rowstart, pixels }))
     }
-
-    const fn rowstart(&self) -> u8 {
-        self.rowstart
-    }
-
-    fn pixels(&self) -> &[u8] {
-        &self.pixels
-    }
 }
 
 pub struct Picture {
-    width: i16,
-    height: i16,
-    left_offset: i16,
-    top_offset: i16,
+    pub width: i16,
+    pub height: i16,
+    pub left_offset: i16,
+    pub top_offset: i16,
     columns: Vec<Vec<Post>>,
 }
 
@@ -47,7 +39,7 @@ impl Picture {
         let (_, columns) = count(
             map_res(le_i32, |offset| {
                 let (data_i, _) = take(offset as usize)(lump_i)?;
-                many0(verify(Post::parse, |post| post.rowstart() != 255))(data_i)
+                many0(verify(Post::parse, |post| post.rowstart != 255))(data_i)
                     .map(|(_, post)| post)
             }),
             width as usize,
@@ -61,22 +53,6 @@ impl Picture {
         })
     }
 
-    pub const fn width(&self) -> i16 {
-        self.width
-    }
-
-    pub const fn height(&self) -> i16 {
-        self.height
-    }
-
-    pub const fn left_offset(&self) -> i16 {
-        self.left_offset
-    }
-
-    pub const fn top_offset(&self) -> i16 {
-        self.top_offset
-    }
-
     pub fn into_matrix(self) -> Vec<Vec<u8>> {
         let (width, height) = (self.width as usize, self.height as usize);
         let mut output = vec![vec![!0; height]; width];
@@ -84,8 +60,8 @@ impl Picture {
             let out_column = &mut output[x];
             let column = &self.columns[x];
             column.into_iter().for_each(|post| {
-                let pixels = post.pixels().iter().cloned();
-                let rowstart = post.rowstart() as usize;
+                let pixels = post.pixels.iter().cloned();
+                let rowstart = post.rowstart as usize;
                 out_column.splice(rowstart..rowstart + pixels.len(), pixels);
             })
         }
@@ -111,13 +87,13 @@ mod tests {
             .filter(|(_, lump)| !lump.is_virtual());
 
         let playpal_lump = archive.get_by_name("PLAYPAL").expect("PLAYPAL not found");
-        let playpal = crate::wad::parser::playpal::parse_playpal(playpal_lump.data())
+        let playpal = crate::wad::parser::playpal::parse_playpal(playpal_lump.data)
             .expect("Error parsing PLAYPAL");
         let playpal = playpal[0]; // Use only first pallete
 
         sprites.into_iter().for_each(|(name, lump)| {
-            let image = super::Picture::parse(lump.data())
-                .expect(format!("Error parsing {}", name).as_str());
+            let image =
+                super::Picture::parse(lump.data).expect(format!("Error parsing {}", name).as_str());
             let matrix = image.into_matrix();
 
             let mut img_buf = image::ImageBuffer::new(matrix.len() as u32, matrix[0].len() as u32);

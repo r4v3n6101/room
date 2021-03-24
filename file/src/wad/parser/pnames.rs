@@ -19,7 +19,7 @@ mod tests {
         let archive =
             crate::wad::parser::file::Archive::parse(&file).expect("Wad file parser error");
         let pnames_lump = archive.get_by_name("PNAMES").expect("PNAMES not found");
-        let pnames = super::parse_pnames(pnames_lump.data()).expect("Error parsing PNAMES");
+        let pnames = super::parse_pnames(pnames_lump.data).expect("Error parsing PNAMES");
 
         pnames
             .into_iter()

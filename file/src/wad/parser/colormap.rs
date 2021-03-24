@@ -26,6 +26,6 @@ mod tests {
         let archive =
             crate::wad::parser::file::Archive::parse(&file).expect("Wad file parser error");
         let colormap_lump = archive.get_by_name("COLORMAP").expect("COLORMAP not found");
-        assert!(super::parse_colormaps(colormap_lump.data()).is_ok());
+        assert!(super::parse_colormaps(colormap_lump.data).is_ok());
     }
 }

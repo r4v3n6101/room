@@ -13,11 +13,11 @@ type ParseResult<'a, O> = nom::IResult<Input<'a>, O, ParseError<'a>>;
 type OnlyResult<'a, O> = Result<O, nom::Err<ParseError<'a>>>;
 
 pub struct PatchDescriptor {
-    x_offset: i16,
-    y_offset: i16,
-    id: i16,
-    stepdir: i16,
-    colormap: i16,
+    pub x_offset: i16,
+    pub y_offset: i16,
+    pub id: i16,
+    pub stepdir: i16,
+    pub colormap: i16,
 }
 
 impl PatchDescriptor {
@@ -35,33 +35,13 @@ impl PatchDescriptor {
             },
         ))
     }
-
-    pub const fn x_offset(&self) -> i16 {
-        self.x_offset
-    }
-
-    pub const fn y_offset(&self) -> i16 {
-        self.y_offset
-    }
-
-    pub const fn id(&self) -> i16 {
-        self.id
-    }
-
-    pub const fn stepdir(&self) -> i16 {
-        self.stepdir
-    }
-
-    pub const fn colormap(&self) -> i16 {
-        self.colormap
-    }
 }
 
 pub struct Texture<'a> {
-    name: &'a str,
-    width: i16,
-    height: i16,
-    patch_descriptors: Vec<PatchDescriptor>,
+    pub name: &'a str,
+    pub width: i16,
+    pub height: i16,
+    pub patch_descriptors: Vec<PatchDescriptor>,
 }
 
 impl<'a> Texture<'a> {
@@ -82,22 +62,6 @@ impl<'a> Texture<'a> {
             height,
             patch_descriptors,
         })
-    }
-
-    pub const fn name(&self) -> &str {
-        self.name
-    }
-
-    pub const fn width(&self) -> i16 {
-        self.width
-    }
-
-    pub const fn height(&self) -> i16 {
-        self.height
-    }
-
-    pub fn patch_descriptors(&self) -> &[PatchDescriptor] {
-        &self.patch_descriptors
     }
 }
 
@@ -124,10 +88,9 @@ mod tests {
         let archive =
             crate::wad::parser::file::Archive::parse(&file).expect("Wad file parser error");
         let texture1_lump = archive.get_by_name("TEXTURE1").expect("TEXTURE1 not found");
-        let textures =
-            super::Textures::parse(texture1_lump.data()).expect("Error parsing TEXTURE1");
+        let textures = super::Textures::parse(texture1_lump.data).expect("Error parsing TEXTURE1");
         textures
             .iter()
-            .for_each(|tex| println!("TEXTURE1 name: {}", tex.name()));
+            .for_each(|tex| println!("TEXTURE1 name: {}", tex.name));
     }
 }

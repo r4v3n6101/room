@@ -32,7 +32,7 @@ impl From<&[u8]> for Type {
 }
 
 pub struct Lump<'a> {
-    data: &'a [u8],
+    pub data: &'a [u8],
 }
 
 impl<'a> Lump<'a> {
@@ -45,17 +45,13 @@ impl<'a> Lump<'a> {
         Ok((i, (name, Self { data })))
     }
 
-    pub const fn data(&self) -> &[u8] {
-        self.data
-    }
-
     pub const fn is_virtual(&self) -> bool {
         self.data.is_empty()
     }
 }
 
 pub struct Archive<'a> {
-    wtype: Type,
+    pub wtype: Type,
     lumps: IndexMap<&'a str, Lump<'a>>,
 }
 
@@ -72,10 +68,6 @@ impl<'a> Archive<'a> {
             vec.into_iter().collect()
         })(dir_i)?;
         Ok(Self { wtype, lumps })
-    }
-
-    pub const fn wtype(&self) -> Type {
-        self.wtype
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&str, &Lump)> {
@@ -98,7 +90,7 @@ mod tests {
         let file = std::fs::read(env!("TEST_WAD")).expect("Error reading wad file");
         let archive = super::Archive::parse(&file).expect("Wad file parser error");
 
-        println!("Wad type: {:?}", archive.wtype());
+        println!("Wad type: {:?}", archive.wtype);
         archive
             .iter()
             .enumerate()

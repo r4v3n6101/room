@@ -29,6 +29,6 @@ mod tests {
         let archive =
             crate::wad::parser::file::Archive::parse(&file).expect("Wad file parser error");
         let playpal_lump = archive.get_by_name("PLAYPAL").expect("PLAYPAL not found");
-        assert!(super::parse_pallete(playpal_lump.data()).is_ok());
+        assert!(super::parse_pallete(playpal_lump.data).is_ok());
     }
 }

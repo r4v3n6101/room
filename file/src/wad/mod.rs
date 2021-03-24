@@ -10,7 +10,7 @@ impl Archive {
         let (iwads, pwads): (Vec<_>, Vec<_>) = wads
             .into_iter()
             .map(|wad| PArchive::parse(wad.as_ref()).unwrap())
-            .partition(|archive| archive.wtype() == PType::IWAD);
+            .partition(|archive| archive.wtype == PType::IWAD);
 
         // TODO : check that iwads.len() == 1
         // TODO : make vec of entries of iwad patched by pwads checking order of level-specific

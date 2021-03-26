@@ -1,10 +1,6 @@
 // TODO : merge into another parser
-use super::name::parse_name;
+use super::{name::parse_name, types::OnlyResult};
 use nom::{combinator::map, multi::length_count, number::complete::le_i32};
-
-type Input<'a> = &'a [u8];
-type ParseError<'a> = nom::error::VerboseError<Input<'a>>;
-type OnlyResult<'a, O> = Result<O, nom::Err<ParseError<'a>>>;
 
 pub fn parse_pnames(i: &[u8]) -> OnlyResult<Vec<&str>> {
     let (_, pnames) = length_count(map(le_i32, |x| x as usize), parse_name)(i)?;

@@ -1,3 +1,4 @@
+use super::types::{OnlyResult, ParseResult};
 use nom::{
     bytes::complete::take,
     combinator::{map_res, verify},
@@ -5,11 +6,6 @@ use nom::{
     number::complete::{le_i16, le_i32, le_u8},
     sequence::tuple,
 };
-
-type Input<'a> = &'a [u8];
-type ParseError<'a> = nom::error::VerboseError<Input<'a>>;
-type ParseResult<'a, O> = nom::IResult<Input<'a>, O, ParseError<'a>>;
-type OnlyResult<'a, O> = Result<O, nom::Err<ParseError<'a>>>;
 
 struct Post {
     rowstart: u8,

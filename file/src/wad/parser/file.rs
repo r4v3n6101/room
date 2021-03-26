@@ -1,4 +1,7 @@
-use super::name::parse_name;
+use super::{
+    name::parse_name,
+    types::{OnlyResult, ParseResult},
+};
 use indexmap::IndexMap;
 use nom::{
     branch::alt,
@@ -8,11 +11,6 @@ use nom::{
     number::complete::le_i32,
     sequence::tuple,
 };
-
-type Input<'a> = &'a [u8];
-type ParseError<'a> = nom::error::VerboseError<Input<'a>>;
-type ParseResult<'a, O> = nom::IResult<Input<'a>, O, ParseError<'a>>;
-type OnlyResult<'a, O> = Result<O, nom::Err<ParseError<'a>>>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Type {

@@ -1,4 +1,7 @@
-use super::name::parse_name;
+use super::{
+    name::parse_name,
+    types::{OnlyResult, ParseResult},
+};
 use nom::{
     bytes::complete::take,
     combinator::{map, map_res},
@@ -6,11 +9,6 @@ use nom::{
     number::complete::{le_i16, le_i32},
     sequence::tuple,
 };
-
-type Input<'a> = &'a [u8];
-type ParseError<'a> = nom::error::VerboseError<Input<'a>>;
-type ParseResult<'a, O> = nom::IResult<Input<'a>, O, ParseError<'a>>;
-type OnlyResult<'a, O> = Result<O, nom::Err<ParseError<'a>>>;
 
 pub struct PatchDescriptor {
     pub x_offset: i16,

@@ -1,10 +1,6 @@
+use super::types::{OnlyResult, ParseResult};
 use nom::{combinator::map_res, multi::count, number::complete::le_u8, sequence::tuple};
 use std::convert::TryInto;
-
-type Input<'a> = &'a [u8];
-type ParseError<'a> = nom::error::VerboseError<Input<'a>>;
-type ParseResult<'a, O> = nom::IResult<Input<'a>, O, ParseError<'a>>;
-type OnlyResult<'a, O> = Result<O, nom::Err<ParseError<'a>>>;
 
 pub type Rgb = (u8, u8, u8);
 pub type Pallete = [Rgb; 256];

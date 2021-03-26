@@ -1,13 +1,10 @@
+use super::types::ParseResult;
 use nom::{
     bytes::complete::{take, take_till},
     combinator::map_res,
 };
 
 const NAME_LEN: usize = 8;
-
-type Input<'a> = &'a [u8];
-type ParseError<'a> = nom::error::VerboseError<Input<'a>>;
-type ParseResult<'a, O> = nom::IResult<Input<'a>, O, ParseError<'a>>;
 
 fn take_cstr(i: &[u8], size: usize) -> ParseResult<&str> {
     let (i, cstr) = take(size)(i)?;

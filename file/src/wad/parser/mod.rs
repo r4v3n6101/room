@@ -1,6 +1,7 @@
 pub mod colormap;
 pub mod file;
 pub mod flat;
+pub mod level;
 pub mod name;
 pub mod picture;
 pub mod playpal;

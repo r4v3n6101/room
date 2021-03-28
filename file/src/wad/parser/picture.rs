@@ -78,18 +78,18 @@ mod tests {
             crate::wad::parser::file::Archive::parse(&file).expect("Wad file parser error");
         let sprites = archive
             .iter()
-            .skip_while(|(name, _)| name != &"S_START")
-            .take_while(|(name, _)| name != &"S_END")
-            .filter(|(_, lump)| !lump.is_virtual());
+            .skip_while(|lump| lump.name != "S_START")
+            .take_while(|lump| lump.name != "S_END")
+            .filter(|lump| !lump.is_virtual());
 
         let playpal_lump = archive.get_by_name("PLAYPAL").expect("PLAYPAL not found");
         let playpal = crate::wad::parser::playpal::parse_playpal(playpal_lump.data)
             .expect("Error parsing PLAYPAL");
         let playpal = playpal[0]; // Use only first pallete
 
-        sprites.into_iter().for_each(|(name, lump)| {
-            let image =
-                super::Picture::parse(lump.data).expect(format!("Error parsing {}", name).as_str());
+        sprites.into_iter().for_each(|lump| {
+            let image = super::Picture::parse(lump.data)
+                .expect(format!("Error parsing {}", lump.name).as_str());
             let matrix = image.into_matrix();
 
             let mut img_buf = image::ImageBuffer::new(matrix.len() as u32, matrix[0].len() as u32);
@@ -107,10 +107,10 @@ mod tests {
                 }
             }
 
-            let output_path = output_dir.join(format!("{}.png", name));
+            let output_path = output_dir.join(format!("{}.png", lump.name));
             img_buf
                 .save(&output_path)
-                .expect(&format!("Error saving {}", name));
+                .expect(&format!("Error saving {}", lump.name));
             println!(
                 "Saved {}",
                 output_path.to_str().expect("Error converting path to str")

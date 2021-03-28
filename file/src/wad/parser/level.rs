@@ -1,15 +1,35 @@
 use super::{
+    file::Archive,
     name::parse_name,
-    types::{OnlyResult, ParseError, ParseResult},
+    types::{OnlyResult, ParseResult},
 };
 use nom::{
-    bytes::complete::take,
-    combinator::verify,
-    combinator::{map, map_res},
-    multi::{count, many0},
+    multi::many0,
     number::complete::{le_i16, le_u16},
-    sequence::{delimited, tuple},
+    sequence::tuple,
 };
+
+const THINGS_OFFSET: usize = 1;
+const LINEDEFS_OFFSET: usize = 2;
+const SIDEDEFS_OFFSET: usize = 3;
+const VERTICES_OFFSET: usize = 4;
+const SEGMENTS_OFFSET: usize = 5;
+const SUBSECTORS_OFFSET: usize = 6;
+const NODES_OFFSET: usize = 7;
+const SECTORS_OFFSET: usize = 8;
+// unused
+// const REJECT_OFFSET: usize = 9;
+// const BLOCKMAP_OFFSET: usize = 10;
+
+fn is_level(name: &str) -> bool {
+    let chars: Vec<_> = name.chars().collect();
+    match chars.as_slice() {
+        ['E', x, 'M', y] | ['M', 'A', 'P', x, y] => {
+            (('1'..='2').contains(x) && ('1'..='9').contains(y)) || (*x == '3' && *y == '0')
+        }
+        _ => false,
+    }
+}
 
 pub struct BoundingBox {
     pub top: i16,
@@ -60,7 +80,7 @@ impl Thing {
 
 pub struct Things;
 impl Things {
-    pub fn parse(i: &[u8]) -> OnlyResult<Vec<Thing>> {
+    fn parse(i: &[u8]) -> OnlyResult<Vec<Thing>> {
         let (_, things) = many0(Thing::parse)(i)?;
         Ok(things)
     }
@@ -97,7 +117,7 @@ impl Linedef {
 
 pub struct Linedefs;
 impl Linedefs {
-    pub fn parse(i: &[u8]) -> OnlyResult<Vec<Linedef>> {
+    fn parse(i: &[u8]) -> OnlyResult<Vec<Linedef>> {
         let (_, linedefs) = many0(Linedef::parse)(i)?;
         Ok(linedefs)
     }
@@ -132,14 +152,14 @@ impl<'a> Sidedef<'a> {
 
 pub struct Sidedefs;
 impl Sidedefs {
-    pub fn parse(i: &[u8]) -> OnlyResult<Vec<Sidedef>> {
+    fn parse(i: &[u8]) -> OnlyResult<Vec<Sidedef>> {
         let (_, sidedefs) = many0(Sidedef::parse)(i)?;
         Ok(sidedefs)
     }
 }
 
 pub type Vertex = (i16, i16);
-pub fn parse_vertices(i: &[u8]) -> OnlyResult<Vec<Vertex>> {
+fn parse_vertices(i: &[u8]) -> OnlyResult<Vec<Vertex>> {
     let (_, vertices) = many0(tuple((le_i16, le_i16)))(i)?;
     Ok(vertices)
 }
@@ -173,7 +193,7 @@ impl Segment {
 
 pub struct Segments;
 impl Segments {
-    pub fn parse(i: &[u8]) -> OnlyResult<Vec<Segment>> {
+    fn parse(i: &[u8]) -> OnlyResult<Vec<Segment>> {
         let (_, segments) = many0(Segment::parse)(i)?;
         Ok(segments)
     }
@@ -193,7 +213,7 @@ impl SubSector {
 
 pub struct SubSectors;
 impl SubSectors {
-    pub fn parse(i: &[u8]) -> OnlyResult<Vec<SubSector>> {
+    fn parse(i: &[u8]) -> OnlyResult<Vec<SubSector>> {
         let (_, ssectors) = many0(SubSector::parse)(i)?;
         Ok(ssectors)
     }
@@ -236,7 +256,7 @@ impl Node {
 
 pub struct Nodes;
 impl Nodes {
-    pub fn parse(i: &[u8]) -> OnlyResult<Vec<Node>> {
+    fn parse(i: &[u8]) -> OnlyResult<Vec<Node>> {
         let (_, nodes) = many0(Node::parse)(i)?;
         Ok(nodes)
     }
@@ -285,45 +305,77 @@ impl<'a> Sector<'a> {
 
 pub struct Sectors;
 impl Sectors {
-    pub fn parse<'a>(i: &'a [u8]) -> OnlyResult<Vec<Sector<'a>>> {
+    fn parse<'a>(i: &'a [u8]) -> OnlyResult<Vec<Sector<'a>>> {
         let (_, sectors) = many0(Sector::parse)(i)?;
         Ok(sectors)
     }
 }
 
-pub struct Blockmap {
-    pub x_origin: i16,
-    pub y_origin: i16,
-    pub x_blocks: i16,
-    pub y_blocks: i16,
-    pub linedefs_num: Vec<Vec<i16>>,
+pub struct Level<'a> {
+    pub name: &'a str,
+    pub things: Vec<Thing>,
+    pub linedefs: Vec<Linedef>,
+    pub sidedefs: Vec<Sidedef<'a>>,
+    pub vertices: Vec<Vertex>,
+    pub segments: Vec<Segment>,
+    pub subsectors: Vec<SubSector>,
+    pub nodes: Vec<Node>,
+    pub sectors: Vec<Sector<'a>>,
 }
 
-impl Blockmap {
-    pub fn parse(blockmap_i: &[u8]) -> OnlyResult<Self> {
-        let (i, (x_origin, y_origin, x_blocks, y_blocks)) =
-            tuple((le_i16, le_i16, le_i16, le_i16))(blockmap_i)?;
-        let (_, linedefs_num) = map(
-            count(
-                map_res(le_u16, |offset| {
-                    let (_, blocklist_i) = take::<_, _, ParseError>(offset as usize)(blockmap_i)?;
-                    delimited(
-                        verify(le_i16, |&x| x == 0),
-                        many0(verify(le_i16, |&x| x != -1)),
-                        verify(le_i16, |&x| x == -1),
-                    )(blocklist_i)
-                    .map(|(_, linedefs_num)| linedefs_num)
-                }),
-                (x_blocks * y_blocks) as usize,
-            ),
-            |x| x.into_iter().collect(),
-        )(i)?;
+impl<'a> Level<'a> {
+    fn parse(i: usize, archive: &'a Archive) -> OnlyResult<'a, Self> {
         Ok(Self {
-            x_origin,
-            y_origin,
-            x_blocks,
-            y_blocks,
-            linedefs_num,
+            name: archive.get_by_index(i).unwrap().name,
+            things: Things::parse(archive.get_by_index(i + THINGS_OFFSET).unwrap().data)?,
+            linedefs: Linedefs::parse(archive.get_by_index(i + LINEDEFS_OFFSET).unwrap().data)?,
+            sidedefs: Sidedefs::parse(archive.get_by_index(i + SIDEDEFS_OFFSET).unwrap().data)?,
+            vertices: parse_vertices(archive.get_by_index(i + VERTICES_OFFSET).unwrap().data)?,
+            segments: Segments::parse(archive.get_by_index(i + SEGMENTS_OFFSET).unwrap().data)?,
+            subsectors: SubSectors::parse(
+                archive.get_by_index(i + SUBSECTORS_OFFSET).unwrap().data,
+            )?,
+            nodes: Nodes::parse(archive.get_by_index(i + NODES_OFFSET).unwrap().data)?,
+            sectors: Sectors::parse(archive.get_by_index(i + SECTORS_OFFSET).unwrap().data)?,
         })
+    }
+}
+
+pub struct Levels;
+impl Levels {
+    pub fn parse<'a>(archive: &'a Archive) -> OnlyResult<'a, Vec<Level<'a>>> {
+        archive
+            .iter()
+            .enumerate()
+            .filter_map(|(i, lump)| {
+                if is_level(lump.name) {
+                    Some(Level::parse(i, archive))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn parse_levels_print_names() {
+        let file = std::fs::read(env!("TEST_WAD")).expect("Error reading wad file");
+        let archive =
+            crate::wad::parser::file::Archive::parse(&file).expect("Wad file parser error");
+        let levels = super::Levels::parse(&archive).expect("Error parsing levels");
+        levels.into_iter().for_each(|level| {
+            println!("Level: {}", level.name);
+            println!("    {:4} things", level.things.len());
+            println!("    {:4} linedefs", level.linedefs.len());
+            println!("    {:4} sidedefs", level.sidedefs.len());
+            println!("    {:4} vertices", level.vertices.len());
+            println!("    {:4} segs", level.segments.len());
+            println!("    {:4} subsectors", level.subsectors.len());
+            println!("    {:4} nodes", level.nodes.len());
+            println!("    {:4} sectors", level.sectors.len());
+        });
     }
 }

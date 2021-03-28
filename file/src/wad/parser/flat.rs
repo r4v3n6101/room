@@ -15,10 +15,9 @@ mod tests {
             crate::wad::parser::file::Archive::parse(&file).expect("Wad file parser error");
         let flat = archive
             .iter()
-            .skip_while(|(name, _)| name != &"F_START")
-            .filter(|(_, lump)| !lump.is_virtual())
+            .skip_while(|lump| lump.name != "F_START")
+            .filter(|lump| !lump.is_virtual())
             .next()
-            .map(|(_, l)| l)
             .expect("Next flat to F_START not found");
 
         assert!(super::parse_flat(flat.data).is_ok());

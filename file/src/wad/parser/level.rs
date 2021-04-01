@@ -1,6 +1,6 @@
 use super::{
-    file::Archive,
-    name::parse_name,
+    file::Lump,
+    name::{is_level_name, parse_name},
     types::{OnlyResult, ParseResult},
 };
 use nom::{
@@ -9,6 +9,10 @@ use nom::{
     sequence::tuple,
 };
 
+const LEVEL_LUMPS: [&str; 10] = [
+    "THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT",
+    "BLOCKMAP",
+];
 const THINGS_OFFSET: usize = 1;
 const LINEDEFS_OFFSET: usize = 2;
 const SIDEDEFS_OFFSET: usize = 3;
@@ -20,16 +24,6 @@ const SECTORS_OFFSET: usize = 8;
 // unused
 // const REJECT_OFFSET: usize = 9;
 // const BLOCKMAP_OFFSET: usize = 10;
-
-fn is_level(name: &str) -> bool {
-    let chars: Vec<_> = name.chars().collect();
-    match chars.as_slice() {
-        ['E', x, 'M', y] | ['M', 'A', 'P', x, y] => {
-            (('1'..='2').contains(x) && ('1'..='9').contains(y)) || (*x == '3' && *y == '0')
-        }
-        _ => false,
-    }
-}
 
 pub struct BoundingBox {
     pub top: i16,
@@ -324,36 +318,32 @@ pub struct Level<'a> {
 }
 
 impl<'a> Level<'a> {
-    fn parse(i: usize, archive: &'a Archive) -> OnlyResult<'a, Self> {
+    fn parse(level_lumps: &[&Lump<'a>]) -> OnlyResult<'a, Self> {
         Ok(Self {
-            name: archive.get_by_index(i).unwrap().name,
-            things: Things::parse(archive.get_by_index(i + THINGS_OFFSET).unwrap().data)?,
-            linedefs: Linedefs::parse(archive.get_by_index(i + LINEDEFS_OFFSET).unwrap().data)?,
-            sidedefs: Sidedefs::parse(archive.get_by_index(i + SIDEDEFS_OFFSET).unwrap().data)?,
-            vertices: parse_vertices(archive.get_by_index(i + VERTICES_OFFSET).unwrap().data)?,
-            segments: Segments::parse(archive.get_by_index(i + SEGMENTS_OFFSET).unwrap().data)?,
-            subsectors: SubSectors::parse(
-                archive.get_by_index(i + SUBSECTORS_OFFSET).unwrap().data,
-            )?,
-            nodes: Nodes::parse(archive.get_by_index(i + NODES_OFFSET).unwrap().data)?,
-            sectors: Sectors::parse(archive.get_by_index(i + SECTORS_OFFSET).unwrap().data)?,
+            name: level_lumps[0].name,
+            things: Things::parse(level_lumps[THINGS_OFFSET].data)?,
+            linedefs: Linedefs::parse(level_lumps[LINEDEFS_OFFSET].data)?,
+            sidedefs: Sidedefs::parse(level_lumps[SIDEDEFS_OFFSET].data)?,
+            vertices: parse_vertices(level_lumps[VERTICES_OFFSET].data)?,
+            segments: Segments::parse(level_lumps[SEGMENTS_OFFSET].data)?,
+            subsectors: SubSectors::parse(level_lumps[SUBSECTORS_OFFSET].data)?,
+            nodes: Nodes::parse(level_lumps[NODES_OFFSET].data)?,
+            sectors: Sectors::parse(level_lumps[SECTORS_OFFSET].data)?,
         })
     }
 }
 
 pub struct Levels;
 impl Levels {
-    pub fn parse<'a>(archive: &'a Archive) -> OnlyResult<'a, Vec<Level<'a>>> {
-        archive
-            .iter()
-            .enumerate()
-            .filter_map(|(i, lump)| {
-                if is_level(lump.name) {
-                    Some(Level::parse(i, archive))
-                } else {
-                    None
-                }
-            })
+    pub fn parse<'a>(
+        lumps_iter: impl Iterator<Item = &'a Lump<'a>>,
+    ) -> OnlyResult<'a, Vec<Level<'a>>> {
+        let levels_lumps: Vec<_> = lumps_iter
+            .filter(|lump| is_level_name(lump.name) || LEVEL_LUMPS.contains(&lump.name))
+            .collect();
+        levels_lumps
+            .chunks(LEVEL_LUMPS.len() + 1)
+            .map(Level::parse)
             .collect()
     }
 }
@@ -365,7 +355,7 @@ mod tests {
         let file = std::fs::read(env!("TEST_WAD")).expect("Error reading wad file");
         let archive =
             crate::wad::parser::file::Archive::parse(&file).expect("Wad file parser error");
-        let levels = super::Levels::parse(&archive).expect("Error parsing levels");
+        let levels = super::Levels::parse(archive.iter()).expect("Error parsing levels");
         levels.into_iter().for_each(|level| {
             println!("Level: {}", level.name);
             println!("    {:4} things", level.things.len());

@@ -17,6 +17,7 @@ use nom::{
 pub enum Type {
     IWAD,
     PWAD,
+    Merged,
 }
 
 impl From<&[u8]> for Type {
@@ -30,7 +31,6 @@ impl From<&[u8]> for Type {
     }
 }
 
-#[derive(Clone)]
 pub struct Lump<'a> {
     pub name: &'a str,
     pub data: &'a [u8],
@@ -54,10 +54,24 @@ impl<'a> Lump<'a> {
 pub struct Archive<'a> {
     pub wtype: Type,
     lumps: Vec<Lump<'a>>,
-    named_lumps: HashMap<&'a str, Lump<'a>>,
+    named_lumps: HashMap<&'a str, usize>,
 }
 
 impl<'a> Archive<'a> {
+    pub fn build_from_lumps(wtype: Type, lumps: Vec<Lump<'a>>) -> Archive<'a> {
+        let named_lumps = lumps
+            .iter()
+            .map(|lump| lump.name)
+            .enumerate()
+            .map(|(i, name)| (name, i))
+            .collect();
+        Self {
+            wtype,
+            lumps,
+            named_lumps,
+        }
+    }
+
     pub fn parse(file: &'a [u8]) -> OnlyResult<Self> {
         let (_, (wtype, dir_num, dir_offset)) = tuple((
             map(alt((tag(b"PWAD"), tag(b"IWAD"))), Type::from),
@@ -70,16 +84,7 @@ impl<'a> Archive<'a> {
             map(count(|i| Lump::parse(i, file), dir_num as usize), |vec| {
                 vec.into_iter().collect()
             })(dir_i)?;
-        let named_lumps = lumps
-            .iter()
-            .cloned()
-            .map(|lump| (lump.name, lump))
-            .collect(); // Speed-up searching by name
-        Ok(Self {
-            wtype,
-            lumps,
-            named_lumps,
-        })
+        Ok(Self::build_from_lumps(wtype, lumps))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Lump> {
@@ -91,7 +96,9 @@ impl<'a> Archive<'a> {
     }
 
     pub fn get_by_name<S: AsRef<str>>(&self, s: S) -> Option<&Lump> {
-        self.named_lumps.get(s.as_ref())
+        self.named_lumps
+            .get(s.as_ref())
+            .and_then(|&index| self.get_by_index(index))
     }
 }
 

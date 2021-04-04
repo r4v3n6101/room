@@ -15,13 +15,3 @@ fn take_cstr(i: &[u8], size: usize) -> ParseResult<&str> {
 pub fn parse_name(i: &[u8]) -> ParseResult<&str> {
     take_cstr(i, NAME_LEN)
 }
-
-pub fn is_level_name(name: &str) -> bool {
-    let chars: Vec<_> = name.chars().collect();
-    match chars.as_slice() {
-        ['E', x, 'M', y] | ['M', 'A', 'P', x, y] => {
-            (('1'..='2').contains(x) && ('1'..='9').contains(y)) || (*x == '3' && *y == '0')
-        }
-        _ => false,
-    }
-}

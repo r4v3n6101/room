@@ -3,13 +3,17 @@ use super::{
     name::parse_name,
     types::{OnlyResult, ParseResult},
 };
-use crate::wad::utils::recognize::recognize_levels;
+use crate::wad::utils::is_level_name;
 use nom::{
     multi::many0,
     number::complete::{le_i16, le_u16},
     sequence::tuple,
 };
 
+const LEVEL_LUMPS: [&str; 10] = [
+    "THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT",
+    "BLOCKMAP",
+];
 const THINGS_OFFSET: usize = 1;
 const LINEDEFS_OFFSET: usize = 2;
 const SIDEDEFS_OFFSET: usize = 3;
@@ -336,9 +340,13 @@ impl Levels {
     where
         I: IntoIterator<Item = &'a Lump<'a>>,
     {
-        recognize_levels(lumps_iter)
+        let level_lumps: Vec<_> = lumps_iter
             .into_iter()
-            .map(|lumps| Level::parse(&lumps))
+            .filter(|lump| is_level_name(lump.name) || LEVEL_LUMPS.contains(&lump.name))
+            .collect();
+        level_lumps
+            .chunks(LEVEL_LUMPS.len() + 1)
+            .map(|lumps| Level::parse(lumps))
             .collect()
     }
 }

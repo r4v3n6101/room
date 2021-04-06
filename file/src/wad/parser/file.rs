@@ -17,7 +17,6 @@ use nom::{
 pub enum Type {
     IWAD,
     PWAD,
-    Merged,
 }
 
 impl From<&[u8]> for Type {
@@ -58,7 +57,7 @@ pub struct Archive<'a> {
 }
 
 impl<'a> Archive<'a> {
-    pub fn build_from_lumps(wtype: Type, lumps: Vec<Lump<'a>>) -> Archive<'a> {
+    fn build_from_lumps(wtype: Type, lumps: Vec<Lump<'a>>) -> Archive<'a> {
         let named_lumps = lumps
             .iter()
             .map(|lump| lump.name)
@@ -99,6 +98,24 @@ impl<'a> Archive<'a> {
         self.named_lumps
             .get(s.as_ref())
             .and_then(|&index| self.get_by_index(index))
+    }
+
+    pub fn add_lump(&mut self, lump: Lump<'a>) {
+        if let Some(&index) = self.named_lumps.get(lump.name) {
+            self.lumps[index] = lump;
+        } else {
+            self.named_lumps.insert(lump.name, self.lumps.len() - 1);
+            self.lumps.push(lump);
+        }
+    }
+}
+
+impl<'a> IntoIterator for Archive<'a> {
+    type Item = Lump<'a>;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.lumps.into_iter()
     }
 }
 

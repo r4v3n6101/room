@@ -2,7 +2,7 @@ use std::{array::TryFromSliceError, convert::TryInto};
 
 pub type Flat<'a> = &'a [u8; 64 * 64];
 
-pub fn parse_flat<'a>(i: &'a [u8]) -> Result<Flat<'a>, TryFromSliceError> {
+pub fn parse_flat(i: &[u8]) -> Result<Flat, TryFromSliceError> {
     i.try_into()
 }
 

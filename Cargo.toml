@@ -5,3 +5,5 @@ authors = ["r4v3n6101 <raven6107@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+file = { path = "file" }
+structopt = "0.3.21"

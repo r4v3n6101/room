@@ -79,4 +79,5 @@ fn save_model<P: AsRef<Path>>(output_dir: P, level: &Level) {
     let model = Model::from_level(&level);
     let obj_data = model.into_obj_str();
     fwrite(full_path, obj_data).expect("fwrite: error writing .obj model");
+    println!("{} done", level.name);
 }

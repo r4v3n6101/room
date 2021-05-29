@@ -1,5 +1,3 @@
-mod model;
-
 use file::wad::{
     parser::{
         file::Archive,
@@ -7,7 +5,6 @@ use file::wad::{
     },
     utils::merge,
 };
-use model::Model;
 use std::{
     fs::{create_dir_all as mkdir, read as fread, write as fwrite},
     path::{Path, PathBuf},
@@ -16,7 +13,7 @@ use std::{
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "wad2obj", about = "Convert doom levels into .obj models")]
+#[structopt(name = "wad2svg", about = "Convert doom levels into .svg maps")]
 struct Opt {
     #[structopt(short, long = "iwad", parse(from_os_str), help = "Path to main IWAD")]
     iwad: PathBuf,
@@ -71,13 +68,53 @@ fn main() {
 
     levels
         .iter()
-        .for_each(|level| save_model(&opt.output_dir, level));
+        .for_each(|level| save_svg(&opt.output_dir, level));
 }
 
-fn save_model<P: AsRef<Path>>(output_dir: P, level: &Level) {
-    let full_path = output_dir.as_ref().join(format!("{}.obj", level.name));
-    let model = Model::from_level(&level);
-    let obj_data = model.into_obj_str();
-    fwrite(full_path, obj_data).expect("fwrite: error writing .obj model");
+fn save_svg<P: AsRef<Path>>(output_dir: P, level: &Level) {
+    let full_path = output_dir.as_ref().join(format!("{}.svg", level.name));
+    let svg_data = level2svg(level);
+    fwrite(full_path, svg_data).expect("fwrite: error writing .svg map");
     println!("{} done", level.name);
+}
+
+fn level2svg(level: &Level) -> String {
+    const MARGIN: i16 = 50;
+    const EXPECTED_WIDTH: i32 = 1024;
+
+    let mut svg = String::new();
+
+    let vertices = &level.vertices;
+    let (mut min_x, mut min_y, mut max_x, mut max_y) =
+        (vertices[0].0, vertices[0].1, vertices[0].0, vertices[0].1);
+    for (x, y) in vertices {
+        min_x = min_x.min(*x);
+        min_y = min_y.min(*y);
+        max_x = max_x.max(*x);
+        max_y = max_y.max(*y);
+    }
+    let (sx, sy) = (max_x - min_x + 2 * MARGIN, max_y - min_y + 2 * MARGIN);
+    let (w, h) = (
+        EXPECTED_WIDTH as f32,
+        EXPECTED_WIDTH as f32 / sx as f32 * sy as f32,
+    ); // Scale to aspect ratio
+
+    svg += &format!("<svg width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\" xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">", w,h,sx, sy);
+    svg += &format!(
+        "<rect x=\"0\" y=\"0\" width=\"{}\" height=\"{}\" fill=\"white\"/>",
+        sx, sy
+    );
+
+    level.linedefs.iter().for_each(|linedef| {
+        let (x1, y1) = vertices[linedef.vertex_start as usize];
+        let (x2, y2) = vertices[linedef.vertex_end as usize];
+        svg +=
+            &format!(
+            "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"black\" stroke-width=\"7\"/>",
+            MARGIN + x1 - min_x, MARGIN + y1 - min_y, MARGIN + x2 - min_x, MARGIN + y2 - min_y
+        );
+    });
+
+    svg += "</svg>";
+    svg
 }

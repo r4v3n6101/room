@@ -1,3 +1,3 @@
-# room
+# wad2svg
 
-Doom port made in Rust!
+Convert DOOM's wad files to .svg maps!

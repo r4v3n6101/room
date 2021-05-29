@@ -1,6 +1,6 @@
 [package]
-name = "room"
-version = "0.1.0"
+name = "wad2svg"
+version = "1.0.0"
 authors = ["r4v3n6101 <raven6107@gmail.com>"]
 edition = "2018"
 
